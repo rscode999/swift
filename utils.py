@@ -1,8 +1,12 @@
 """
 Contains utility functions for the main Python script
+
+Required modules: pywin32
+Built-in modules used: sys
 """
 
 from pywintypes import com_error # pyright: ignore[reportMissingModuleSource]
+import sys
 from win32com.client.dynamic import CDispatch 
 
 #############################################################################################
@@ -46,6 +50,23 @@ class EmailNotFoundException(NameError):
 #############################################################################################
 # Functions
 #############################################################################################
+
+
+def clean_input(prompt: str = ""):
+    """
+    Prints `prompt`, then takes the user's input.
+    Upon a KeyboardInterrupt or EOFError, prints an error message and calls `sys.exit(-1)`.
+    """
+
+    try:
+        return input(prompt)
+    except KeyboardInterrupt:
+        print("\nProgram exited")
+        sys.exit(-1) 
+    except EOFError:
+        print("\nPython exited")
+        sys.exit(-1) 
+
 
 def printc(escape_sequence: str, contents: str = "", end: str = '\n', flush: bool = False) -> None:
     """

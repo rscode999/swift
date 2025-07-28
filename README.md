@@ -11,7 +11,7 @@ Ever wondered if your GitHub collaborators are secretly Taylor Swift fans?
 
 Possible flags:  
 - `--launch`: Activates the script, used as a safeguard against accidental use.
-- `-n`, `--n-msgs`: Configures the script's verbosity. Must be a positive integer.
+- `-n`, `--n-msgs`: Configures the script's verbosity. Default 0. Must be a positive integer.
 - `-v`, `--verbose`: Sets whether the script prints extra messages to the console
 
 #### Examples

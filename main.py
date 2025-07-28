@@ -1,3 +1,10 @@
+"""
+Main script of the Swift project
+
+Required modules: pygithub, pywin32
+Built-in modules used: argparse, sys
+"""
+
 import argparse
 from github import Github, GithubException
 import sys
@@ -12,8 +19,8 @@ if __name__ == '__main__':
 
     #Set up argument parser
     parser = argparse.ArgumentParser()
-    parser.add_argument('--launch', action='store_true', help='Launch instead of doing a scouting run')
-    parser.add_argument('--n-msgs', '-n', type=int, help="Set the script's verbosity. Must be a positive integer")
+    parser.add_argument('--launch', action='store_true', help='Activate the script')
+    parser.add_argument('--n-msgs', '-n', default=0, type=int, help="Set the script's verbosity. Default 0. Must be a positive integer")
     parser.add_argument('--verbose', '-v', action='store_true', help='Whether to print more messages to the console')
 
     args = parser.parse_args()
@@ -24,7 +31,7 @@ if __name__ == '__main__':
     if args.n_msgs < 0:
         parser.error('Number of messages must be a positive integer')
 
-    token = input("Enter Github personal access token: ")
+    token = clean_input("Enter Github personal access token: ")
     verbose = args.verbose #more readable
 
 
@@ -83,22 +90,23 @@ if __name__ == '__main__':
             #check the repo
             if name.find('taylorswift')!= -1 or readme_contents.find('taylorswift') != -1:
                 if verbose:
-                    printc(BLUE, f'Repo {name} ({url}) has content. Launching.')
+                    printc(BLUE, f'Repo {name} ({url}) has content.', end='')
                 else:
-                    printc(BLUE, f'Repo {name} of {name} ({url}) has content. Launching.')
+                    printc(BLUE, f'Repo {name} of {name} ({url}) has content.', end='')
                 
                 #Fire!
-                for i in range(args.n_msgs):
-                    send_outlook_email(outlook, 'rscode999@outlook.com', 'rscode999@outlook.com',
-                                    f'Content found in repo {name} ({i+1})', 'This is an automated message. Contents were found.')
-                    if verbose:
-                        printc(BLUE, f"Launched {i+1} of {args.n_msgs}")
+                if args.launch:
+                    for i in range(args.n_msgs):
+                        send_outlook_email(outlook, 'rscode999@outlook.com', 'rscode999@outlook.com',
+                                        f'Content found in repo {name} ({i+1})', 'This is an automated message. Contents were found.')
+                        if verbose:
+                            printc(BLUE, f"Launched {i+1} of {args.n_msgs}")
 
             if verbose:
-                print()
+                print(flush=True)
         
         if verbose:
-            print()
+            print(flush=True)
 
 
     #IMPORTANT: Close the Outlook API instance
