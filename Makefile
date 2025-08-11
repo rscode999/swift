@@ -1,3 +1,6 @@
+setup:
+	python -m pip install pygithub
+	python -m pip install pywin32
 
 scout:
 	python main.py --verbose

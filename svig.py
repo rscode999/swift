@@ -1,10 +1,25 @@
+"""
+Module for encrypting and decrypting with the S-Vig (Stacked Vigenere) process
+
+This module contains two methods, `encr` and `decr`, for encryption and decryption.
+
+The module may also be ran as a standalone script.
+Use the '-d' flag to use decryption.
+Run `python svig.py -h` for a full list of flags and arguments.
+
+Built-in modules used: sys
+"""
+
+import sys
+
 _KEY_LENGTHS = [2,3,5,7,11,13,17,23,27]
+"""Lengths of each key to use in processes"""
 
 
 
-def _assert_preconditions(input: str, keys: list[str], n_subkeys: int) -> None:
+def _assert_svig_preconditions(input, keys, n_subkeys) -> None:
     """
-    Raises an AssertionError if any operation preconditions are broken.
+    Raises an AssertionError if the preconditions of the `decr` or `encr` functions are broken.
     """
     assert isinstance(input, str), "input must be a string"
     assert isinstance(keys, list), "key must be a list"
@@ -18,18 +33,81 @@ def _assert_preconditions(input: str, keys: list[str], n_subkeys: int) -> None:
 
 
 
-def encr(input: str, keys: list[str], n_subkeys: int = 7) -> str:
+def decr(text: str, keys: list[str], n_used_keys: int = 3) -> str:
     """
-    Encrypts `input` using the keys `keys`, using the first `n_used_keys` of the keys in `keys`.
+    Decrypts `text` using the keys `keys`, using the first `n_used_keys` of the keys in `keys`.
 
     Parameters:
-        input (str): input text to encrypt
+        text (str): input text to decrypt
         keys (list[str]): keys to use. Must have nonzero length. Strings must not be empty and contain only English lowercase letters.
-        n_used_keys (int): amount of keys to use in the given keys. Must be at least the length of the `keys` list.
+        n_used_keys (int, default=3): amount of keys to use in the given keys. Must be at least the length of the `keys` list.
     Returns:
-        `input` encrypted with `keys`
+        str: `text` decrypted with `keys`
     """
-    _assert_preconditions(input, keys, n_subkeys)
+    _assert_svig_preconditions(text, keys, n_used_keys)
+
+    effective_key_lengths = [] #make a deep copy
+    while(len(effective_key_lengths) < n_used_keys):
+        effective_key_lengths.append(_KEY_LENGTHS[len(effective_key_lengths) % len(_KEY_LENGTHS)])
+
+
+    effective_keys = []
+    for k in range(n_used_keys):
+        new_subkey = ""
+        
+        while len(new_subkey) < effective_key_lengths[k]:
+            new_subkey += keys[k]
+
+        effective_keys.append(new_subkey[:effective_key_lengths[k]])
+    
+
+    n_alpha_chars = 0
+    for i in text:
+        if 65<=ord(i)<=90 or 97<=ord(i)<=122:
+            n_alpha_chars += 1
+
+    output = ""
+    for text_char in reversed(text):
+
+        if not (65<=ord(text_char)<=90 or 97<=ord(text_char)<=122):
+            output += text_char
+        
+        else:
+            n_alpha_chars -= 1
+
+            is_upper = 65 <= ord(text_char) <= 90
+
+            input_value = (ord(text_char) - 65) if is_upper else (ord(text_char) - 97)
+            
+            composite_value = 0
+            for k in range(n_used_keys):
+                k_char = effective_keys[k][n_alpha_chars % len(effective_keys[k])]
+                composite_value += ord(k_char)-97
+                
+            composite_value = composite_value % 26
+
+            output_value = (input_value - composite_value) % 26
+            if output_value < 0:
+                output_value += 26
+
+            output += chr(output_value + 65) if is_upper else chr(output_value + 97)     
+            
+    return output[::-1]
+
+
+
+def encr(text: str, keys: list[str], n_subkeys: int = 3) -> str:
+    """
+    Encrypts `text` using the keys `keys`, using the first `n_used_keys` of the keys in `keys`.
+
+    Parameters:
+        text (str): input text to encrypt
+        keys (list[str]): keys to use. Must have nonzero length. Strings must not be empty and contain only English lowercase letters.
+        n_used_keys (int, default=3): amount of keys to use in the given keys. Must be at least the length of the `keys` list.
+    Returns:
+        str: `text` encrypted with `keys`
+    """
+    _assert_svig_preconditions(text, keys, n_subkeys)
 
 
     effective_key_lengths = [] #make a deep copy
@@ -50,15 +128,15 @@ def encr(input: str, keys: list[str], n_subkeys: int = 7) -> str:
     n_alpha_chars = 0
 
     output = ""
-    for input_char in input:
+    for text_char in text:
 
-        if not (65<=ord(input_char)<=90 or 97<=ord(input_char)<=122):
-            output += input_char
+        if not (65<=ord(text_char)<=90 or 97<=ord(text_char)<=122):
+            output += text_char
         
         else:
-            is_upper = 65 <= ord(input_char) <= 90
+            is_upper = 65 <= ord(text_char) <= 90
 
-            input_value = (ord(input_char) - 65) if is_upper else (ord(input_char) - 97)
+            input_value = (ord(text_char) - 65) if is_upper else (ord(text_char) - 97)
             
             composite_value = 0
             for k in range(n_subkeys):
@@ -77,67 +155,23 @@ def encr(input: str, keys: list[str], n_subkeys: int = 7) -> str:
 
 
 
-def decr(input: str, keys: list[str], n_used_keys: int = 7) -> str:
+def input_clean(prompt: str = "") -> str:
     """
-    Decrypts `input` using the keys `keys`, using the first `n_used_keys` of the keys in `keys`.
+    Prints `prompt`, then returns the user's input from the standard input.
+
+    Does not print a stack trace upon receiving a KeyboardInterrupt or EOFError. Instead, calls `sys.exit(-1)`.
 
     Parameters:
-        input (str): input text to decrypt
-        keys (list[str]): keys to use. Must have nonzero length. Strings must not be empty and contain only English lowercase letters.
-        n_used_keys (int): amount of keys to use in the given keys. Must be at least the length of the `keys` list.
+        prompt (str, default=''): text to ask the user for an input
     Returns:
-        `input` decrypted with `keys`
+        str: user's input from `stdin`
     """
-    _assert_preconditions(input, keys, n_used_keys)
+    try:
+        return input(prompt)
+    except (KeyboardInterrupt, EOFError) as e:
+        print("\nProgram exited")
+        sys.exit(-1)
 
-
-    effective_key_lengths = [] #make a deep copy
-    while(len(effective_key_lengths) < n_used_keys):
-        effective_key_lengths.append(_KEY_LENGTHS[len(effective_key_lengths) % len(_KEY_LENGTHS)])
-
-
-    effective_keys = []
-    for k in range(n_used_keys):
-        new_subkey = ""
-        
-        while len(new_subkey) < effective_key_lengths[k]:
-            new_subkey += keys[k]
-
-        effective_keys.append(new_subkey[:effective_key_lengths[k]])
-    
-
-    n_alpha_chars = 0
-    for i in input:
-        if 65<=ord(i)<=90 or 97<=ord(i)<=122:
-            n_alpha_chars += 1
-
-    output = ""
-    for input_char in reversed(input):
-
-        if not (65<=ord(input_char)<=90 or 97<=ord(input_char)<=122):
-            output += input_char
-        
-        else:
-            n_alpha_chars -= 1
-
-            is_upper = 65 <= ord(input_char) <= 90
-
-            input_value = (ord(input_char) - 65) if is_upper else (ord(input_char) - 97)
-            
-            composite_value = 0
-            for k in range(n_used_keys):
-                k_char = effective_keys[k][n_alpha_chars % len(effective_keys[k])]
-                composite_value += ord(k_char)-97
-                
-            composite_value = composite_value % 26
-
-            output_value = (input_value - composite_value) % 26
-            if output_value < 0:
-                output_value += 26
-
-            output += chr(output_value + 65) if is_upper else chr(output_value + 97)     
-            
-    return output[::-1]
 
 
 
@@ -145,11 +179,11 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--decr', '-d', action='store_true', help='Flag to decrypt the given input')
-    parser.add_argument('--in-file', default="", type=str, help='Input filepath to use. Must lead to a *.txt file')
-    parser.add_argument('--out-file', default="", type=str, help='Output filepath to use. Must lead to a *.txt file')
-    parser.add_argument('--keys', '-k', default="", type=str, help='Comma-separated list of keys to use during the operation. Must contain English lowercase characters only (no spaces anywhere).')
-    parser.add_argument('--n-keys', '-nsk', default=7, type=int, help='The first N keys to use in the list of given keys. Must be an integer greater than or equal to the number of keys used. Default 7')
+    parser.add_argument('--decr', '-d', action='store_true', help='Flag to decrypt the given input. If not set, the script encrypts the input.')
+    parser.add_argument('--in-file', '-i', default="", type=str, help='Input filepath to use. If not defined, input comes from stdin. Must lead to a *.txt file')
+    parser.add_argument('--out-file', '-o', default="", type=str, help='Output filepath to use. If not defined, output goes to stdout. Must lead to a *.txt file')
+    parser.add_argument('--keys', '-k', default="", type=str, help='Comma-separated list of keys to use during the operation. If not defined, a list of keys must be provided through stdin. Must contain English lowercase characters only (no spaces anywhere).')
+    parser.add_argument('--n-keys', '-nk', default=3, type=int, help='The first N keys to use in the list of given keys. Default 3. Must be an integer greater than or equal to the number of keys used.')
     args = parser.parse_args()
     #Note: If the --in-file and --out-file are not set, their lengths are 0
 
@@ -172,17 +206,7 @@ if __name__ == '__main__':
     keys = None
     if len(args.keys) > 0:
         keys = args.keys.replace(' ', '').split(",")
-        #Check the key
-        for k, key in enumerate(keys):
-            if len(key)==0:
-                parser.error(f"Subkey {k+1} cannot be the empty string")
-            for l, letter in enumerate(key):
-                if not 97<=ord(letter)<=122:
-                    parser.error(f"Character {l+1} in subkey {k+1} ('{letter}') must be an English lowercase letter")
-        
-        #Check number of subkeys
-        if args.n_keys < len(keys):
-            parser.error(f"Number of keys used ({args.n_keys}) must be at least {len(keys)}, the number of keys used")
+
 
 
     #Take the input
@@ -193,27 +217,29 @@ if __name__ == '__main__':
             text = f.read()
     else:
         #Standard input read
-        text = input("Enter ciphertext: " if args.decr else "Enter plaintext: ")
+        text = input_clean("Enter ciphertext: " if args.decr else "Enter plaintext: ")
     
 
     #Take the keys (if not defined yet)
     if not keys:
-        keys = input("Enter keys (comma-separated): ").replace(' ', '').split(',')
+        keys = input_clean("Enter keys (comma-separated): ").replace(' ', '').split(',')
 
-        #Check the key. Redundant, but I feel like this is the best option
-        for k, key in enumerate(keys):
-            if len(key)==0:
-                parser.error(f"Subkey {k+1} cannot be the empty string")
-            for l, letter in enumerate(key):
-                if not 97<=ord(letter)<=122:
-                    parser.error(f"Character {l+1} in subkey {k+1} ('{letter}') must be an English lowercase letter")
 
-        #Check number of keys
-        if len(keys) < args.n_keys:
-            parser.error(f"Number of keys used ({args.n_keys}) must be at most {len(keys)}, the actual number of keys used. Use the option `--n-subkeys [N]`")
+    #Check the key
+    for k, key in enumerate(keys):
+        if len(key)==0:
+            parser.error(f"Subkey {k+1} cannot be the empty string")
+        for l, letter in enumerate(key):
+            if not 97<=ord(letter)<=122:
+                parser.error(f"Character {l+1} in subkey {k+1} ('{letter}') must be an English lowercase letter")
+
+    #Check number of keys
+    if len(keys) < args.n_keys:
+        parser.error(f"Number of keys used ({len(keys)}) must be at least {args.n_keys}, the number of keys used")
 
 
     #Do the operation
+    text = text.replace("'", "")
     text = decr(text, keys, n_used_keys=args.n_keys) if args.decr else encr(text, keys, n_subkeys=args.n_keys)
 
 

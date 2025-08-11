@@ -1,7 +1,7 @@
 """
 Main script of the Swift project
 
-Required modules: pygithub, pywin32
+Required modules: pygithub, pywin32.
 Built-in modules used: argparse, sys
 """
 

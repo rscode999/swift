@@ -1,7 +1,7 @@
 """
 Contains utility functions for the main Python script
 
-Required modules: pywin32
+Required modules: pywin32.
 Built-in modules used: sys
 """
 
